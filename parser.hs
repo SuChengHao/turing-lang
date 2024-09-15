@@ -30,7 +30,8 @@ data Declaration = ProgramDeclaration {programIdentity::Text,
                                        repeatBody     :: (Either Text, [BodyLine]),
                                        repeatState    :: Text}
                  | ProgramRun         {ProgramIdentity :: Text,
-                                       programBody :: Text}       
+                                       programBody :: Text}
+                   deriving (Eq,Show)
 
 type Parser = Parsec Void Text
 
@@ -43,7 +44,32 @@ sc = L.space
   (L.skipLineComment "//")
   (L.skipBlockComment "/*" "*/")
 
+lexeme :: Parser a -> Parser a
+lexeme = L.lexeme sc
+
 integer :: Parser Integer
 integer = lexeme L.decimal
+
+pVariable :: Parser Text
+pVariable = lexeme $ (:) <$> letterChar <*> many alphaNumber <?> "variable"
+
+pStateNum :: Parser (Either Int Text)
+pStateNum =
+  do num <- lexeme L.decimal
+     return (Left num)
+
+pStateText :: Parser (Either Int Text)
+pStateText =
+  do et <- 
+
+pNextState :: Parser (Either Int Text)
+
+pReactionConfig :: Parser ReactionConfig
+pReactionConfig = do
+
+pDeclaration :: Parser Declaration
+
+pProgram :: Parser [Declaration]
+pProgram = many
 
 
