@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards#-}
+
 
 module TuringParser where
 
 
-import Control.Applicative
+import Control.Applicative hiding (many)
 import Control.Monad
 import qualified Data.Vector as V
 import Data.Text (Text)
@@ -12,9 +12,9 @@ import Data.Void
 import qualified Data.Text.IO as TI
 import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char
-import Text.Megaparsec.Expr
+import Control.Monad.Combinators.Expr
 import qualified Text.Megaparsec.Char.Lexer as L
-import Main(Content,HeadMove,Reaction,State,StateIndex,TapeIndex)
+import Main(HeadMove(..),Content(..))
 
 data ReactionConfig = ReactionConfig Int HeadMove (Either Int String) deriving (Eq,Show)
 type BodyLine = (Maybe ReactionConfig,Maybe ReactionConfig)
@@ -107,8 +107,7 @@ pRrogramRepeat = do
   
 
 pTerm :: Parser ProgramExpr
-pTerm = choice
-[
+pTerm = choice [
   pProgramTable,
   pProgramParens pProgramExpr,
   try pProgramRepeat,
@@ -137,7 +136,7 @@ pRawContent = choice
     RawIndicator  <$ char '|',
     pRawNum]
   
-pTapeArray = Parser TapeExpr
+pTapeArray :: Parser TapeExpr
 pTapeArray = TArray <$> between (char '[') (char ']') $ many pRawContent
 
 pTape :: Parser TapeExpr
