@@ -15,11 +15,14 @@ M3 = {,0R10;}
 double = M2 |=> M3
 
 tape5 = [0|(5)00]
+
 tape6 = [0|(10)00]
 
-tape5
-double |> tape5
+!tape5
 
-double |> tape6
+
+!double |> tape5
+
+!double |> tape6
 
 

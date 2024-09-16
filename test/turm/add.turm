@@ -5,5 +5,5 @@ succ = {
 
 threetape = [0|(3)00000]
 
-succ |> threetape
+!succ |> threetape
 
