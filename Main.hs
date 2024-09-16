@@ -1,4 +1,4 @@
-module Main(Content,Reaction,State,StateIndex,Program,TapeIndex,main) where 
+module Main(Content,HeadMove,Reaction,State,StateIndex,Program,TapeIndex,main) where 
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
 import Control.Monad (forM_)

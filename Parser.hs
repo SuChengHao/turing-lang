@@ -14,14 +14,14 @@ import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char
 import Text.Megaparsec.Expr
 import qualified Text.Megaparsec.Char.Lexer as L
-import Main (Content,HeadMove,Reaction,State,StateIndex,TapeIndex)
+import Main(Content,HeadMove,Reaction,State,StateIndex,TapeIndex)
 
 data ReactionConfig = ReactionConfig Int HeadMove (Either Int String) deriving (Eq,Show)
 type BodyLine = (Maybe ReactionConfig,Maybe ReactionConfig)
 
 data RawContent = RawMark Content |
                   RawNum  Int     |
-                  RawIndicator    |
+                  RawIndicator    
                   deriving (Eq, Show)
 
 data ProgramExpr = PTable [BodyLine]
@@ -158,7 +158,7 @@ pTapeDeclaration = do
 
 pRunDeclaration  = do
   p <- pProgramExpr
-  void $ lexeme $ char '|>'
+  void $ lexeme $ symbol "|>"
   t <- lexeme pTape
   return RunDeclaration{programToRun=p,tapeToRun=t}
 
