@@ -9,7 +9,7 @@ M1 = {
 0R9,1Ou; // the u is a syntax sugar for exit
 }
 
-M2 = (M1) <- u // M2 = repeat M1
+M2 = <M1> u // M2 = repeat M1
 M3 = {,0R10;}
 
 double = M2 |=> M3
@@ -20,7 +20,6 @@ tape6 = [0|(10)00]
 tape5
 double |> tape5
 
-tape6
 double |> tape6
 
 

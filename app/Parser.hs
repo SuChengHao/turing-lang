@@ -27,17 +27,21 @@ data RawContent = RawMark Content |
 data ProgramExpr = PTable [BodyLine]
                   | PVar String
                   | PCombine ProgramExpr ProgramExpr
-                  | PRepeat ProgramExpr String deriving (Eq,Show)
-data TapeExpr = TVar String
-                | TArray [RawContent] deriving (Eq,Show)
+                  | PRepeat ProgramExpr String
+                  | PTapeArray [RawContent]
+                  | PApp ProgramExpr ProgramExpr
+                 deriving (Eq,Show)
 
-data Declaration = ProgramDeclaration {programIdentity::String,
-                                       programBody::ProgramExpr}
-                 | TapeDeclaration    {tapeIdentity::String,
-                                       tapeBody::TapeExpr}
-                 | RunDeclaration     {programToRun :: ProgramExpr,
-                                       tapeToRun :: TapeExpr}
-                   deriving (Eq,Show)
+-- data TapeExpr = TVar String
+--                 | TArray [RawContent]
+--                 | TApp TapeExpr TapeExpr
+--                 | TPWild ProgramExpr
+--               deriving (Eq,Show)
+
+data Declaration = BindingDeclaration {decIdentity::String,
+                                      decBody :: ProgramExpr}
+                   | RawExpr            {rawBody :: ProgramExpr}
+                 deriving (Eq,Show)
 
 type Parser = Parsec Void Text
 
@@ -53,20 +57,23 @@ sc = L.space
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
-integer ::(Num a) => Parser Integer
+symbol :: Text -> Parser Text
+symbol = L.symbol sc
+
+integer ::(Num a) => Parser a
 integer = lexeme L.decimal
 
 pVariable :: Parser String
 pVariable = lexeme ( (:) <$> letterChar <*> many alphaNumChar <?> "variable")
 
-pStateNum :: Parser (Either Int Text)
+pStateNum :: Parser (Either Int String)
 pStateNum = Left <$> (lexeme L.decimal)
 
 
-pStateText :: Parser (Either Int Text)
+pStateText :: Parser (Either Int String)
 pStateText = Right <$> pVariable
 
-pNextState :: Parser (Either Int Text)
+pNextState :: Parser (Either Int String)
 pNextState = pStateNum <|> pStateText
 
 
@@ -81,7 +88,7 @@ pReactionConfig = do
   ow <- integer
   mv <- pHeadMove
   ns <- pNextState
-  return ReactionConfig ow mv ns
+  return $ ReactionConfig ow mv ns
 
 pBodyLine :: Parser BodyLine
 pBodyLine = do
@@ -90,41 +97,19 @@ pBodyLine = do
   return (r1,r2)
 
 pProgramTable :: Parser ProgramExpr
-pProgramTable = PTable <$> between (char '{') (char '}') $ many $ lexeme pBodyLine
+pProgramTable = PTable <$> (between (lexeme $ char '{') (lexeme $ char '}') $ many $ lexeme pBodyLine)
   
 pProgramVariable :: Parser ProgramExpr
 pProgramVariable = PVar <$> pVariable
 
 pProgramParens :: Parser a -> Parser a
-pProgramParens :: between (symbol "(") (symbol ")")
+pProgramParens = between (lexeme $ symbol "(") (lexeme $ symbol ")")
 
 pProgramRepeat :: Parser ProgramExpr
-pRrogramRepeat = do
-  p <- pRogramExpr
-  void $ lexeme $ string "!"
+pProgramRepeat = do
+  p <- between (lexeme $ symbol "<") (lexeme $ symbol ">") $ pProgramExpr
   s <- pVariable
-  return $ PRepeat p s
-  
-
-pTerm :: Parser ProgramExpr
-pTerm = choice [
-  pProgramTable,
-  pProgramParens pProgramExpr,
-  try pProgramRepeat,
-  pProgramVariable
- ]
-
-operatorTable :: [[Operator Parser ProgramExpr]]
-operatorTable =
-  [[
-      binary "|=>" PCombine
-   ]]
-  
-binary :: Text -> (Expr -> Expr -> Expr) -> Operator Parser Expr
-binary name f = InfixL (f <$ symbol name)
-
-pProgramExpr :: Parser ProgramExpr
-pProgramExpr = makeExprParser pTerm operatorTable
+  return $ PRepeat p s  
 
 pRawNum :: Parser RawContent
 pRawNum = between (char '(') (char ')') $ RawNum <$> integer
@@ -136,31 +121,49 @@ pRawContent = choice
     RawIndicator  <$ char '|',
     pRawNum]
   
-pTapeArray :: Parser TapeExpr
-pTapeArray = TArray <$> between (char '[') (char ']') $ many pRawContent
+pTapeArray :: Parser ProgramExpr
+pTapeArray = PTapeArray <$> (between (char '[') (char ']') $ many pRawContent)
 
-pTape :: Parser TapeExpr
-pTape = (TVar <$> pVariable ) <|> pTapeArray
+pTerm :: Parser ProgramExpr
+pTerm = choice [
+  pProgramTable,
+  pTapeArray,
+  pProgramParens pProgramExpr,
+  pProgramRepeat,
+  pProgramVariable
+ ]
 
-pProgramDeclaration :: Parser Declaration
-pProgramDeclaration = do
+operatorTable :: [[Operator Parser ProgramExpr]]
+operatorTable =
+  [ [
+      binary "|=>" PCombine
+    ],
+    [ binaryr "|>" PApp]
+  ]
+  
+binary :: Text -> (ProgramExpr -> ProgramExpr -> ProgramExpr) -> Operator Parser ProgramExpr
+binary name f = InfixL (f <$ symbol name)
+
+binaryr :: Text -> (ProgramExpr -> ProgramExpr -> ProgramExpr) -> Operator Parser ProgramExpr
+binaryr name f = InfixR (f <$ symbol name)
+
+pProgramExpr :: Parser ProgramExpr
+pProgramExpr = makeExprParser pTerm operatorTable
+
+-- program: declarations
+-- binding declaration:
+
+pBindingDeclaration :: Parser Declaration
+pBindingDeclaration = do
   n <- pVariable
   void $ lexeme $ char '='
   p <- lexeme pProgramExpr
-  return ProgramDeclaration{programIdentity=n,programBody=p}
+  return BindingDeclaration{decIdentity=n,decBody=p}
 
-pTapeDeclaration = do
-  n <- pVariable
-  void $ lexeme $ char '='
-  p <- lexeme pTape
-  return TapeDeclaration{tapeIdentity=n,tapeBody=p}
 
-pRunDeclaration  = do
-  p <- pProgramExpr
-  void $ lexeme $ symbol "|>"
-  t <- lexeme pTape
-  return RunDeclaration{programToRun=p,tapeToRun=t}
+pSimpDeclaration :: Parser Declaration
+pSimpDeclaration = RawExpr <$> (pProgramExpr <h* void (many hspace <* newline))
 
 pProgram :: Parser [Declaration]
-pProgram = many pRunDeclaration
+pProgram = many $ choice [try pSimpDeclaration, pBindingDeclaration]
 
