@@ -1,7 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 
-module TuringParser where
+module TuringParser(ReactionConfig(..),
+                   RawContent(..),
+                   ProgramExpr(..),
+                   BodyLine,
+                   Declaration,
+                   Content(..),
+                   HeadMove(..)) where
 
 
 import Control.Applicative hiding (many)
@@ -12,7 +18,6 @@ import Data.Void
 import qualified Data.Text.IO as TI
 import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char
-import Text.Megaparsec.Debug(dbg)
 import Control.Monad.Combinators.Expr
 import qualified Text.Megaparsec.Char.Lexer as L
 import Main(HeadMove(..),Content(..))
@@ -55,17 +60,10 @@ sc = L.space
   (L.skipLineComment "//")
   (L.skipBlockComment "/*" "*/")
 
-hsc :: Parser ()
-hsc = L.space
-  hspace1
-  (L.skipLineComment "//")
-  (L.skipBlockComment "/*" "*/")
 
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
-hlexeme :: Parser a -> Parser a
-hlexeme = L.lexeme hsc
 
 symbol :: Text -> Parser Text
 symbol = L.symbol sc
