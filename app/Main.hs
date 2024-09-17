@@ -3,9 +3,10 @@ module Main (
   HeadMove(MLeft,MRight,MStop),
   Reaction(..),
   State(..),
-  StateIndex(..),
+  StateIndex,
   Program(..),
-  TapeIndex(..),
+  TapeIndex,
+  Tape,
   main) where 
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
