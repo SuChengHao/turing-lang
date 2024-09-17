@@ -1,29 +1,32 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 
-module TuringParser(ReactionConfig(..),
-                   RawContent(..),
-                   ProgramExpr(..),
-                   BodyLine,
-                   Declaration,
-                   Content(..),
-                   HeadMove(..)) where
+module Parser(ReactionConfig(..),
+               RawContent(..),
+               ProgramExpr(..),
+               BodyLine,
+               Declaration(..),
+               Content(..),
+               HeadMove(..),
+               pProgram) where
 
 
 import Control.Applicative hiding (many)
 import Control.Monad
-import qualified Data.Vector as V
+-- import qualified Data.Vector as V
 import Data.Text (Text)
 import Data.Void
-import qualified Data.Text.IO as TI
+-- import qualified Data.Text.IO as TI
 import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char
 import Control.Monad.Combinators.Expr
 import qualified Text.Megaparsec.Char.Lexer as L
-import Main(HeadMove(..),Content(..))
 
 data ReactionConfig = ReactionConfig Int HeadMove (Either Int String) deriving (Eq,Show)
 type BodyLine = (Maybe ReactionConfig,Maybe ReactionConfig)
+
+data HeadMove = MLeft | MRight | MStop deriving (Eq, Show)
+data Content = Blank | Mark   deriving (Eq, Show)
 
 data RawContent = RawMark Content |
                   RawNum  Int     |
@@ -173,5 +176,7 @@ pSimpDeclaration :: Parser Declaration
 pSimpDeclaration =RawExpr <$> ((symbol "!") *> pProgramExpr)
 
 pProgram :: Parser [Declaration]
-pProgram = many $ (choice [try pSimpDeclaration, pBindingDeclaration]) 
+pProgram = many $ (choice [try pSimpDeclaration, pBindingDeclaration])
+
+
 

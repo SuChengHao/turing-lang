@@ -2,8 +2,7 @@ succ = {
 1L2,1R1;
 0R3,1L2;
 }
-
 threetape = [0|(3)00000]
-
+!threetape
 !succ |> threetape
 
