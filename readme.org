@@ -144,7 +144,7 @@ is a copy of =p= but all =u= are replaced by =1=. For example,
 #+end_src
 is equivalent to
 #+begin_src
-  <{0Rv,1O1;}>
+  {0Rv,1O1;}
 #+end_src
 **** Combine
 combination is a useful but error-prone feature.
