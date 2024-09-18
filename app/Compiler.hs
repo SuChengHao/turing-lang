@@ -149,7 +149,7 @@ findIndicator i (x:xs) = case x of
 
 compileTapeToVector :: [RawContent] -> (V.Vector Content,Int)
 compileTapeToVector t =
-  ((V.fromList $ fromRawContentToContent t), idx)
+  (V.snoc (V.fromList $ fromRawContentToContent t) Blank, idx)
   where idx = 
           case (findIndicator 0 t) of
             Just i -> i

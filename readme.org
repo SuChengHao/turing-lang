@@ -1,14 +1,16 @@
 * turing-lang: A turing machine language
 turing-lang is a simple DSL to describe and run turing machines.
-turing-lang provides following features:
+Following features are provided:
 - naming turing machines and tapes so you can refer to and manipulate them easily 
 - syntactic sugars for combining existing machines and constructing loops
 - (TODO) visible execution of turing machines
 
 There are a few versions of "turing machine" that differ in numbers
-of tapes, character sets or other aspects. This DSL employs a version
+of tapes, character sets or other aspects.
+
+This DSL employs a version
 with single-tape and two characters based on Fangmin Song's /introduction
-to computational models/.
+to computational models/. 
 
 ** quick start
 1. clone and build this project
@@ -30,31 +32,90 @@ to computational models/.
    #+end_src
 
 ** Turing machine definition
-A turing machine is 
+You can refer to Chapter 5 if you have the book /introduction to computational models/.
+
+Informally, a turing machine performs computation by reading and writing a tape.
+
+*** tape
+A tape is separated into cells. It has a left end but can extend to right infinitely. So a tape has countably infinitely many cells.
+The content of a cell is either =Blank= or =Mark=. We usually use =0= to represent =Blank= and =1= to represent =Mark=.
+A tape has a head pointing to exactly one cell. The head can move to
+the previous(left) cell or the next(right) cell.
+
+
+
+*** machine
+A machine consists of finitely many states. Each state specifies the
+following actions.
+1. read the content of the cell pointed by the head
+2. based on the content perform:
+   1. overwriting the content
+   2. moving the head by one cell
+   3. jumping to another state
+
+A machine *halts* when the action is undefined. Concretely,
+1. when the current state does not define how to react to certain content.
+2. when the machine jumps to an undefined state
+   1. for example, jump to state 5 when a machine only has four states
+3. when the head tries to cross the left endpoint.
+   
+Since we only have two kinds of characters, we can define a machine by a table with two columns. Each row demonstrates a state. The first column indicates the action when read Blank, and the second indicates the action when read Mark.
+
+For example, the table
+#+begin_src
+  {1L2,0R1;
+  1O2,;}
+#+end_src
+is a machine saying:
+1. the machine has two states.
+2. in the first state,
+   1. if read 0(=Blank=) from tape, then write 1 to the cell, move the head to left, and jumps to the second state
+   2. if read 1(=Mark=) from tape, then write 0 to the cell, move the head to right, and jumps to the first state (loop).
+3. in the second state,
+   1. if read 0(=Blank=) from tape, then write 1 to the cell, don't move the head, and jumps to the second state (loop)
+   2. if read 1(=Mark=) from tape, then halt.
+
 ** turing-lang DSL specification
 
 *** syntax
 #+begin_src
   Declaration ::= Var = ProgramExpr
-                | !ProgramExpr
+                | !ProgramExpr                ;; print the evaluation result
   ProgramExpr ::= {TuringTable}
                 | ProgramExpr |=> ProgramExpr
-                | <ProgramExpr> String        ;; repeat Machine by jumping back to u
+                | <ProgramExpr> Var           ;; repeat Machine by jumping back to u
                 | ProgramExpr |> ProgramExpr  ;; run program(left) on tape(right)
                 | [Tape]
   TuringTable ::= State ; TuringTable
+                | epsilon                     ;; empty program
   State       ::= Reaction,Reaction           ;;
   Reaction    ::= epsilon                     ;; empty state
                 | Int Move NextState          ;; overwrite move nextstate
   Move        ::= L|O|R                       ;; Left Stop Right
   NextState   ::= Int                         ;; Jump to another state
-                | String                      ;; Exit state
+                | Var                         ;; Exit state
 #+end_src
+
+A turing table consists of zero or more lines, separated by ;.
+A line is consists of two (possibly empty) "reaction"s, separated by ,.
+A reaction consists of three parts:
+1. an overwrite letter, 1 or 0
+2. a movement letter, L or O or R.
+3. a next state indicator, an integer or an variable
+See [[file:test/turm/][turm examples]].
+   
 Here, the Tape is defined by the regex =(\(\d+\)|0|1|\|)*= and there is exactly one '|' in the string.
 For example, this tape is legal: =1010|0(10)=
 But these tapes are illegal:
 - =1|0|110|0= has too many '|'
 - =1001(2)= has no '|'
+
+Semantically, 1 indicates =Mark=, and 0 indicates =Blank=.
+And =(num)= is a syntactic sugar for =num+1= consecutive =Mark=, so =(2)= is equivalent to =111=. 
+
+'|' indicates the position of a head pointing to the next character. So =|01110= has a head pointing to the first character =0=, while =0110|= has a head pointing to the fifth character =0= which is not explicitly written. Recall that a tape is infinite. When a =(num)= is followed, '|' points to the first =1= of =(num)=.
+
+
 *** semantics
 **** Exit State
 When specifying a state, you can put a string (usually a letter like 'u' or 'v') in the position of next state.
