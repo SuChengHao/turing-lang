@@ -1,0 +1,90 @@
+* turing-lang: A turing machine language
+turing-lang is a simple DSL to describe and run turing machines.
+turing-lang provides following features:
+- naming turing machines and tapes so you can refer to and manipulate them easily 
+- syntactic sugars for combining existing machines and constructing loops
+- (TODO) visible execution of turing machines
+
+There are a few versions of "turing machine" that differ in numbers
+of tapes, character sets or other aspects. This DSL employs a version
+with single-tape and two characters based on Fangmin Song's /introduction
+to computational models/.
+
+** quick start
+1. clone and build this project
+
+   #+begin_src sh
+     git clone https://github.com/SuChengHao/turing-lang
+
+     cd turing-lang
+
+     cabal build
+   #+end_src
+
+   Haskell tool chains are required to build. You might want to refer to modern tools like [[https://www.haskell.org/ghcup/][ghcup]].
+2. run test file
+   #+begin_src sh
+     cabal run turing-lang:turm -- test/turm/add.turm
+
+     cabal run turing-lang:turm -- test/turm/combine.turm
+   #+end_src
+
+** Turing machine definition
+A turing machine is 
+** turing-lang DSL specification
+
+*** syntax
+#+begin_src
+  Declaration ::= Var = ProgramExpr
+                | !ProgramExpr
+  ProgramExpr ::= {TuringTable}
+                | ProgramExpr |=> ProgramExpr
+                | <ProgramExpr> String        ;; repeat Machine by jumping back to u
+                | ProgramExpr |> ProgramExpr  ;; run program(left) on tape(right)
+                | [Tape]
+  TuringTable ::= State ; TuringTable
+  State       ::= Reaction,Reaction           ;;
+  Reaction    ::= epsilon                     ;; empty state
+                | Int Move NextState          ;; overwrite move nextstate
+  Move        ::= L|O|R                       ;; Left Stop Right
+  NextState   ::= Int                         ;; Jump to another state
+                | String                      ;; Exit state
+#+end_src
+Here, the Tape is defined by the regex =(\(\d+\)|0|1|\|)*= and there is exactly one '|' in the string.
+For example, this tape is legal: =1010|0(10)=
+But these tapes are illegal:
+- =1|0|110|0= has too many '|'
+- =1001(2)= has no '|'
+*** semantics
+**** Exit State
+When specifying a state, you can put a string (usually a letter like 'u' or 'v') in the position of next state.
+It will be replaced by an "exiting state" when the program is executed,
+namely an index to some undefined state. So the program halts if it "jumps to u"
+
+For example, this program will find the first 1 from left to right.
+#+begin_src
+  0R1,1O2;
+#+end_src
+It is semantically equal to the following program
+#+begin_src
+  0R1,1Ou
+#+end_src
+Here we substitute 'u' for 2. Since this program has only one state, jumping to state 2 means halting. 
+
+Except highlighting, exit states are also used to indicate loops.
+**** Loop
+Suppose that =p= is a program with an exit =u=. Then the expression
+#+begin_src
+  <p> u
+#+end_src
+is a copy of =p= but all =u= are replaced by =1=. For example,
+#+begin_src
+  <{0Rv,1Ou;}> u 
+#+end_src
+is equivalent to
+#+begin_src
+  <{0Rv,1O1;}>
+#+end_src
+**** Combine
+combination is a useful but error-prone feature.
+Suppose that =p= and =q= are two programs, then =p |=> q= is a new program that behaves like "executing p first then q".

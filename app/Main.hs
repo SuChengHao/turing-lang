@@ -7,13 +7,21 @@ import Compiler(tyckDeclaration)
 import Text.Megaparsec(runParser)
 import Text.Megaparsec.Error(errorBundlePretty)
 import qualified Data.Text.IO as TI
--- import Control.Exception (catch, throwIO, Exception)
+import Control.Monad (foldM_)
 import System.Environment
+import System.Console.GetOpt
 import System.Exit
-usage :: IO ()
-usage = putStrLn "turm file.turm"
-exit :: IO ()
-exit    = exitWith ExitSuccess
+import System.IO
+
+data Flag =
+  Version
+  | Help
+  deriving (Eq,Ord,Enum,Show)
+
+flags :: [OptDescr Flag]
+flags = [Option ['v'] [] (NoArg Version) "show version information",
+         Option ['h'] ["help"] (NoArg Help) "show help message"]
+
 
 parseProgramFromFile :: String -> IO (Either String [Declaration])
 parseProgramFromFile src =
@@ -33,18 +41,28 @@ tyckAndRun p =
 
 interpProgramFromFile :: String -> IO ()
 interpProgramFromFile src =
-  do msg <- parseProgramFromFile src
-     case msg of
-       Left err -> putStr err
-       Right u -> tyckAndRun u
+  do
+    putStrLn $ "[" ++ src ++ "]"
+    msg <- parseProgramFromFile src
+    case msg of
+      Left err -> putStr err
+      Right u -> tyckAndRun u
 
-manipulateArgs :: [String] -> IO ()
-manipulateArgs ("-h":_) = usage >> exit
-manipulateArgs (src:_) = interpProgramFromFile src >> exit
-manipulateArgs []      = putStrLn "turm, please provide at least one source file"
 
 main :: IO ()
 main = do
-  args <- getArgs
-  manipulateArgs args
+  argv <- getArgs
+  case getOpt Permute flags argv of
+    (args,fs,[]) -> 
+      if Help `elem` args
+      then do hPutStrLn stderr (usageInfo header flags)
+              exitWith ExitSuccess
+      else if Version `elem` args
+           then  do hPutStrLn stderr "turm version 0.1.0.0"
+                    exitWith ExitSuccess
+           else foldM_ (\_ -> interpProgramFromFile) () fs
+    (_,_,errs) -> do
+      hPutStrLn stderr (concat errs ++ usageInfo header flags)
+      exitWith (ExitFailure 1)
+    where header = "Usage turm [-hv] [file.turm ...]"
 
