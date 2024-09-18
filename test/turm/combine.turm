@@ -10,7 +10,7 @@ M1 = {
 }
 
 M2 = <M1> u // M2 = repeat M1
-M3 = {,0R10;}
+M3 = {,0R2;}
 
 double = M2 |=> M3
 

@@ -1,0 +1,17 @@
+M1 = {
+,1L2;
+1L3,0Ru;
+0R4,1R2;
+0L5,1R4;
+,0L6;
+0Rv,1L6;}
+
+compress = <M1> v
+
+tape = [0(5)0000|(10)]
+!tape
+!compress |> tape
+
+tape2 = [0(4)0000000000000|(8)]
+!tape2
+!compress |> tape2
